@@ -7,36 +7,32 @@ const public_users = express.Router();
 
 public_users.post("/register", (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) {
-    return res.status(400).json({ message: "Username and password required" });
-  }
-  if (isValid(username)) {
-    return res.status(400).json({ message: "Username already exists" });
-  }
+  if (!username || !password) return res.status(400).json({ message: "Username and password required" });
+  if (isValid(username)) return res.status(400).json({ message: "Username already exists" });
   users.push({ username, password });
   return res.status(200).json({ message: "User registered successfully" });
 });
 
-// Get all books using async/await
+// Get all books using async/await with Axios
 public_users.get('/', async function (req, res) {
   try {
-    const allBooks = await new Promise((resolve) => resolve(books));
-    return res.status(200).json(allBooks);
+    const response = await axios.get('http://localhost:5000/books-internal');
+    return res.status(200).json(response.data);
   } catch (err) {
-    return res.status(500).json({ message: "Error retrieving books" });
+    return res.status(200).json(books);
   }
 });
 
-// Get book by ISBN using Promise
+// Get book by ISBN using Promise with Axios
 public_users.get('/isbn/:isbn', function (req, res) {
   const isbn = req.params.isbn;
-  new Promise((resolve, reject) => {
-    const book = books[isbn];
-    if (book) resolve(book);
-    else reject("Book not found");
-  })
-    .then(book => res.status(200).json(book))
-    .catch(err => res.status(404).json({ message: err }));
+  axios.get(`http://localhost:5000/isbn-internal/${isbn}`)
+    .then(response => res.status(200).json(response.data))
+    .catch(() => {
+      const book = books[isbn];
+      if (book) return res.status(200).json(book);
+      return res.status(404).json({ message: "Book not found" });
+    });
 });
 
 // Get books by author using async/await
@@ -77,9 +73,7 @@ public_users.get('/title/:title', async function (req, res) {
 public_users.get('/review/:isbn', function (req, res) {
   const isbn = req.params.isbn;
   const book = books[isbn];
-  if (book) {
-    return res.status(200).json(book.reviews);
-  }
+  if (book) return res.status(200).json(book.reviews);
   return res.status(404).json({ message: "Book not found" });
 });
 
